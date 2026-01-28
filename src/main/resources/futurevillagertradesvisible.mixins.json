@@ -1,0 +1,21 @@
+﻿{
+    "required":  true,
+    "package":  "com.futurevillagertradesvisible.mixin",
+    "compatibilityLevel":  "JAVA_21",
+    "mixins":  [
+                   "AbstractVillagerAccessor",
+                   "MerchantMenuAccessor",
+                   "MerchantMixin",
+                   "ServerPlayerMixin",
+                   "VillagerMixin"
+               ],
+    "client":  [
+                   "ClientSideMerchantMixin",
+                   "MerchantContainerMixin",
+                   "MerchantMenuMixin",
+                   "MerchantScreenMixin"
+               ],
+    "injectors":  {
+                      "defaultRequire":  1
+                  }
+}
