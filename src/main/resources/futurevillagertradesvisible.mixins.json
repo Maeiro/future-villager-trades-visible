@@ -3,6 +3,7 @@
   "required": true,
   "package": "com.futurevillagertradesvisible.mixin",
   "compatibilityLevel": "JAVA_17",
+  "refmap": "futurevillagertradesvisible.refmap.json",
   "mixins": [
     "AbstractVillagerAccessor",
     "MerchantMenuAccessor",
