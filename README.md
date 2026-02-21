@@ -1,7 +1,7 @@
 Future Villager Trades Visible
 ==============================
 
-NeoForge (1.21.1) mod to display future villager trades in the trading screen.
+Forge (1.20.1) mod to display future villager trades in the trading screen.
 
 Features
 --------
@@ -11,7 +11,7 @@ Features
 
 Requirements
 ------------
-- Java 21
+- Java 17
 
 Dev run
 -------

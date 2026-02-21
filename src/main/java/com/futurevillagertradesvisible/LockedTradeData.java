@@ -5,9 +5,9 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerData;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -29,26 +29,28 @@ public class LockedTradeData {
         this.lockedOffers = new ArrayList<>(offers);
     }
 
-    public static @Nullable LockedTradeData load(CompoundTag tag, RegistryAccess registryAccess) {
+    public static @Nullable LockedTradeData load(CompoundTag tag) {
         if (!tag.contains(TAG_LOCKED_OFFERS)) return null;
-        return MerchantOffers.CODEC
-                .listOf()
-                .parse(registryAccess.createSerializationContext(NbtOps.INSTANCE), tag.get(TAG_LOCKED_OFFERS))
-                .resultOrPartial(FutureVillagerTradesVisible.LOGGER::error)
-                .map(LockedTradeData::new)
-                .orElse(null);
+        ListTag offersTag = tag.getList(TAG_LOCKED_OFFERS, Tag.TAG_COMPOUND);
+        List<MerchantOffers> offers = new ArrayList<>(offersTag.size());
+        for (Tag entry : offersTag) {
+            if (entry instanceof CompoundTag offerTag) {
+                offers.add(new MerchantOffers(offerTag));
+            }
+        }
+        return new LockedTradeData(offers);
     }
 
-    public void save(CompoundTag tag, RegistryAccess registryAccess) {
-        MerchantOffers.CODEC
-                .listOf()
-                .encodeStart(registryAccess.createSerializationContext(NbtOps.INSTANCE), this.lockedOffers)
-                .resultOrPartial(FutureVillagerTradesVisible.LOGGER::error)
-                .ifPresent(nbt -> tag.put(TAG_LOCKED_OFFERS, nbt));
+    public void save(CompoundTag tag) {
+        ListTag offersTag = new ListTag();
+        for (MerchantOffers offers : this.lockedOffers) {
+            offersTag.add(offers.createTag());
+        }
+        tag.put(TAG_LOCKED_OFFERS, offersTag);
     }
 
     public MerchantOffers popTradeSet() {
-        return this.lockedOffers.isEmpty() ? null : this.lockedOffers.removeFirst();
+        return this.lockedOffers.isEmpty() ? null : this.lockedOffers.remove(0);
     }
 
     public MerchantOffers buildLockedOffers() {
@@ -83,7 +85,7 @@ public class LockedTradeData {
             int newCount = offers.size() - previousSize;
             MerchantOffers newOffers = new MerchantOffers();
             for (int i = 0; i < newCount; i++) {
-                newOffers.add(offers.removeLast());
+                newOffers.add(offers.remove(offers.size() - 1));
             }
             lockedOffers.add(newOffers);
         }

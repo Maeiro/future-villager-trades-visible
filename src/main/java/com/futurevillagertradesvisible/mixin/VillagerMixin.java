@@ -43,13 +43,13 @@ public abstract class VillagerMixin extends AbstractVillager implements Reputati
     @Inject(method = "addAdditionalSaveData", at = @At("HEAD"))
     private void fvtv$saveLockedTradeData(CompoundTag tag, CallbackInfo ci) {
         if (!fvtv$isEnabled() || this.fvtv$lockedTradeData == null) return;
-        this.fvtv$lockedTradeData.save(tag, this.registryAccess());
+        this.fvtv$lockedTradeData.save(tag);
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
     private void fvtv$readLockedTradeData(CompoundTag tag, CallbackInfo ci) {
         if (!fvtv$isEnabled()) return;
-        this.fvtv$lockedTradeData = LockedTradeData.load(tag, this.registryAccess());
+        this.fvtv$lockedTradeData = LockedTradeData.load(tag);
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
