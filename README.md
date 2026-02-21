@@ -3,6 +3,10 @@ Future Villager Trades Visible
 
 Forge (1.20.1) mod to display future villager trades in the trading screen.
 
+Preview
+-------
+![In-game preview](img/in-game-preview.png)
+
 Features
 --------
 - Shows future trades in the offer list without reopening the UI.
