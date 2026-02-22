@@ -9,6 +9,7 @@ import net.minecraft.world.item.trading.Merchant;
 import net.minecraft.world.item.trading.MerchantOffers;
 
 import com.futurevillagertradesvisible.Config;
+import com.futurevillagertradesvisible.DebugLogger;
 import com.futurevillagertradesvisible.ducks.ClientSideMerchantDuck;
 
 @Mixin(MerchantContainer.class)
@@ -22,12 +23,29 @@ public class MerchantContainerMixin {
             )
     )
     private MerchantOffers fvtv$removeTradeAutoFillIfLocked(Merchant merchant) {
-        MerchantOffers offers = merchant.getOffers();
-        if (!Config.isEnabled()) return offers;
-        if (merchant instanceof ClientSideMerchantDuck duck) {
-            MerchantOffers unlocked = duck.visibleTraders$getClientUnlockedTrades();
-            if (unlocked != null) return unlocked;
+        try {
+            MerchantOffers offers = merchant.getOffers();
+            if (!Config.isEnabled()) return offers;
+            if (merchant instanceof ClientSideMerchantDuck duck) {
+                MerchantOffers unlocked = duck.visibleTraders$getClientUnlockedTrades();
+                if (unlocked != null) {
+                    DebugLogger.info(
+                            "MerchantContainerMixin redirect using unlocked offers. {}, {}, unlockedSize={}",
+                            DebugLogger.merchantSummary(merchant),
+                            DebugLogger.offersSummary(offers),
+                            unlocked.size()
+                    );
+                    return unlocked;
+                }
+            }
+            return offers;
+        } catch (RuntimeException e) {
+            DebugLogger.error(
+                    "MerchantContainerMixin redirect failed. {}",
+                    e,
+                    DebugLogger.merchantSummary(merchant)
+            );
+            throw e;
         }
-        return offers;
     }
 }

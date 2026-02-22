@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.Unique;
 import net.minecraft.world.entity.npc.ClientSideMerchant;
 import net.minecraft.world.item.trading.MerchantOffers;
 
+import com.futurevillagertradesvisible.DebugLogger;
 import com.futurevillagertradesvisible.ducks.ClientSideMerchantDuck;
 
 @Mixin(ClientSideMerchant.class)
@@ -22,5 +23,6 @@ public class ClientSideMerchantMixin implements ClientSideMerchantDuck {
     @Override
     public void visibleTraders$setClientUnlockedTrades(MerchantOffers offers) {
         this.fvtv$clientUnlockedTrades = offers;
+        DebugLogger.info("ClientSideMerchant unlocked trades updated unlockedSize={}", offers == null ? -1 : offers.size());
     }
 }

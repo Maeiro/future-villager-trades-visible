@@ -16,6 +16,7 @@ import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 
 import com.futurevillagertradesvisible.Config;
+import com.futurevillagertradesvisible.DebugLogger;
 import com.futurevillagertradesvisible.ducks.ClientSideMerchantDuck;
 import com.futurevillagertradesvisible.ducks.MerchantMenuDuck;
 
@@ -37,15 +38,32 @@ public abstract class MerchantMenuMixin implements MerchantMenuDuck {
 
     @Inject(method = "setMerchantLevel", at = @At("TAIL"))
     private void fvtv$readUnlockedTradeCountFromLevel(int level, CallbackInfo ci) {
-        if (!Config.isEnabled()) {
-            this.fvtv$unlockedTradeCount = 0;
-            this.merchantLevel = level;
-            fvtv$setClientUnlockedTrades(0);
-            return;
+        try {
+            if (!Config.isEnabled()) {
+                this.fvtv$unlockedTradeCount = 0;
+                this.merchantLevel = level;
+                fvtv$setClientUnlockedTrades(0);
+                return;
+            }
+            this.fvtv$unlockedTradeCount = level >> 8;
+            fvtv$setClientUnlockedTrades(this.fvtv$unlockedTradeCount);
+            this.merchantLevel = level & 255;
+            DebugLogger.info(
+                    "MerchantMenuMixin#setMerchantLevel decodedLevel={} unlockedCount={} rawLevel={} {}",
+                    this.merchantLevel,
+                    this.fvtv$unlockedTradeCount,
+                    level,
+                    DebugLogger.merchantSummary(this.trader)
+            );
+        } catch (RuntimeException e) {
+            DebugLogger.error(
+                    "MerchantMenuMixin#setMerchantLevel failed rawLevel={} {}",
+                    e,
+                    level,
+                    DebugLogger.merchantSummary(this.trader)
+            );
+            throw e;
         }
-        this.fvtv$unlockedTradeCount = level >> 8;
-        fvtv$setClientUnlockedTrades(this.fvtv$unlockedTradeCount);
-        this.merchantLevel = level & 255;
     }
 
     @Override
@@ -56,20 +74,37 @@ public abstract class MerchantMenuMixin implements MerchantMenuDuck {
 
     @Unique
     private void fvtv$setClientUnlockedTrades(int unlockedCount) {
-        if (!(this.trader instanceof ClientSideMerchantDuck duck)) return;
-        if (unlockedCount <= 0) {
-            duck.visibleTraders$setClientUnlockedTrades(null);
-            return;
+        try {
+            if (!(this.trader instanceof ClientSideMerchantDuck duck)) return;
+            if (unlockedCount <= 0) {
+                duck.visibleTraders$setClientUnlockedTrades(null);
+                return;
+            }
+            MerchantOffers offers = getOffers();
+            if (offers.isEmpty()) {
+                duck.visibleTraders$setClientUnlockedTrades(null);
+                return;
+            }
+            int max = Math.min(unlockedCount, offers.size());
+            List<MerchantOffer> list = offers.subList(0, max);
+            MerchantOffers unlocked = new MerchantOffers();
+            unlocked.addAll(list);
+            duck.visibleTraders$setClientUnlockedTrades(unlocked);
+            DebugLogger.info(
+                    "MerchantMenuMixin prepared client unlocked offers unlockedCount={} max={} {} {}",
+                    unlockedCount,
+                    max,
+                    DebugLogger.merchantSummary(this.trader),
+                    DebugLogger.offersSummary(offers)
+            );
+        } catch (RuntimeException e) {
+            DebugLogger.error(
+                    "MerchantMenuMixin#setClientUnlockedTrades failed unlockedCount={} {}",
+                    e,
+                    unlockedCount,
+                    DebugLogger.merchantSummary(this.trader)
+            );
+            throw e;
         }
-        MerchantOffers offers = getOffers();
-        if (offers.isEmpty()) {
-            duck.visibleTraders$setClientUnlockedTrades(null);
-            return;
-        }
-        int max = Math.min(unlockedCount, offers.size());
-        List<MerchantOffer> list = offers.subList(0, max);
-        MerchantOffers unlocked = new MerchantOffers();
-        unlocked.addAll(list);
-        duck.visibleTraders$setClientUnlockedTrades(unlocked);
     }
 }

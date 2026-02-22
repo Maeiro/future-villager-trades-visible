@@ -13,6 +13,7 @@ import net.minecraft.world.item.trading.Merchant;
 import net.minecraft.world.item.trading.MerchantOffers;
 
 import com.futurevillagertradesvisible.Config;
+import com.futurevillagertradesvisible.DebugLogger;
 import com.futurevillagertradesvisible.ducks.VillagerDuck;
 
 @Mixin(ServerPlayer.class)
@@ -28,15 +29,34 @@ public class ServerPlayerMixin {
             boolean canRestock,
             CallbackInfo ci
     ) {
-        if (!Config.isEnabled()) return;
-        ServerPlayer self = (ServerPlayer) (Object) this;
-        if (!(self.containerMenu instanceof MerchantMenu menu)) return;
-        Merchant trader = ((MerchantMenuAccessor) menu).fvtv$getTrader();
-        if (!(trader instanceof Villager villager)) return;
-        VillagerDuck duck = VillagerDuck.of(villager);
-        MerchantOffers combined = duck.visibleTraders$getCombinedOffers();
-        int shiftedLevel = duck.visibleTraders$getShiftedLevel();
-        self.connection.send(new ClientboundMerchantOffersPacket(containerId, combined, shiftedLevel, xp, showProgress, canRestock));
-        ci.cancel();
+        try {
+            if (!Config.isEnabled()) return;
+            ServerPlayer self = (ServerPlayer) (Object) this;
+            if (!(self.containerMenu instanceof MerchantMenu menu)) return;
+            Merchant trader = ((MerchantMenuAccessor) menu).fvtv$getTrader();
+            if (!(trader instanceof Villager villager)) return;
+            VillagerDuck duck = VillagerDuck.of(villager);
+            MerchantOffers combined = duck.visibleTraders$getCombinedOffers();
+            int shiftedLevel = duck.visibleTraders$getShiftedLevel();
+            DebugLogger.info(
+                    "ServerPlayerMixin sending combined offers containerId={} originalOffers={} combinedOffers={} rawLevel={} shiftedLevel={} villagerUuid={}",
+                    containerId,
+                    offers.size(),
+                    combined.size(),
+                    level,
+                    shiftedLevel,
+                    villager.getUUID()
+            );
+            self.connection.send(new ClientboundMerchantOffersPacket(containerId, combined, shiftedLevel, xp, showProgress, canRestock));
+            ci.cancel();
+        } catch (RuntimeException e) {
+            DebugLogger.error(
+                    "ServerPlayerMixin#sendMerchantOffers failed containerId={} rawLevel={}",
+                    e,
+                    containerId,
+                    level
+            );
+            throw e;
+        }
     }
 }

@@ -67,9 +67,17 @@ public class LockedTradeData {
         int requiredSets = MAX_LEVEL - villager.getVillagerData().getLevel();
         while (requiredSets < this.lockedOffers.size()) popCallback.run();
         if (requiredSets > this.lockedOffers.size()) {
-            FutureVillagerTradesVisible.LOGGER.error("Detected missing locked trade sets. Rebuilding locked offers");
-            this.lockedOffers.clear();
-            this.lockedOffers.addAll(generateTrades(villager));
+            int missing = requiredSets - this.lockedOffers.size();
+            DebugLogger.error(
+                    "Detected missing locked trade sets (required={}, current={}) for villagerUuid={}. Padding with empty sets to avoid offer corruption.",
+                    new IllegalStateException("Missing locked trade sets"),
+                    requiredSets,
+                    this.lockedOffers.size(),
+                    villager.getUUID()
+            );
+            for (int i = 0; i < missing; i++) {
+                this.lockedOffers.add(new MerchantOffers());
+            }
         }
     }
 
@@ -78,18 +86,49 @@ public class LockedTradeData {
         VillagerData data = villager.getVillagerData();
         List<MerchantOffers> lockedOffers = new ArrayList<>();
         int level = data.getLevel();
-        while (level < MAX_LEVEL) {
-            villager.setVillagerData(data.setLevel(++level));
-            int previousSize = offers.size();
-            VillagerDuck.of(villager).visibleTraders$updateTrades();
-            int newCount = offers.size() - previousSize;
-            MerchantOffers newOffers = new MerchantOffers();
-            for (int i = 0; i < newCount; i++) {
-                newOffers.add(offers.remove(offers.size() - 1));
+        DebugLogger.info(
+                "LockedTradeData generation started villagerUuid={} level={} offersSize={}",
+                villager.getUUID(),
+                level,
+                offers.size()
+        );
+        try {
+            while (level < MAX_LEVEL) {
+                villager.setVillagerData(data.setLevel(++level));
+                int previousSize = offers.size();
+                try {
+                    VillagerDuck.of(villager).visibleTraders$updateTrades();
+                } catch (Throwable t) {
+                    DebugLogger.error(
+                            "LockedTradeData failed to generate future trades at level={} villagerUuid={}. Falling back to currently unlocked trades only.",
+                            t,
+                            level,
+                            villager.getUUID()
+                    );
+                    lockedOffers.add(new MerchantOffers());
+                    while (level < MAX_LEVEL) {
+                        level++;
+                        lockedOffers.add(new MerchantOffers());
+                    }
+                    break;
+                }
+                int newCount = offers.size() - previousSize;
+                MerchantOffers newOffers = new MerchantOffers();
+                for (int i = 0; i < newCount; i++) {
+                    newOffers.add(offers.remove(offers.size() - 1));
+                }
+                lockedOffers.add(newOffers);
             }
-            lockedOffers.add(newOffers);
+        } finally {
+            villager.setVillagerData(data);
+            DebugLogger.info(
+                    "LockedTradeData generation finished villagerUuid={} level={} generatedSets={} offersSize={}",
+                    villager.getUUID(),
+                    data.getLevel(),
+                    lockedOffers.size(),
+                    offers.size()
+            );
         }
-        villager.setVillagerData(data);
         return lockedOffers;
     }
 }

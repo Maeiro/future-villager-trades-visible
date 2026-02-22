@@ -21,6 +21,7 @@ import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
 
 import com.futurevillagertradesvisible.Config;
+import com.futurevillagertradesvisible.DebugLogger;
 import com.futurevillagertradesvisible.LockedTradeData;
 import com.futurevillagertradesvisible.ducks.VillagerDuck;
 
@@ -69,14 +70,28 @@ public abstract class VillagerMixin extends AbstractVillager implements Reputati
 
     @Inject(method = "updateTrades", at = @At("HEAD"), cancellable = true)
     private void fvtv$preventAdditionalTradesOnRankIncrease(CallbackInfo ci) {
-        if (!fvtv$isEnabled()) return;
-        MerchantOffers offers = fvtv$getOffersOrNull();
-        if (offers == null || offers.isEmpty()) {
-            this.fvtv$lockedTradeData = null;
-            return;
-        }
-        if (fvtv$appendLockedOffer()) {
-            ci.cancel();
+        try {
+            if (!fvtv$isEnabled()) return;
+            MerchantOffers offers = fvtv$getOffersOrNull();
+            if (offers == null || offers.isEmpty()) {
+                this.fvtv$lockedTradeData = null;
+                return;
+            }
+            if (fvtv$appendLockedOffer()) {
+                DebugLogger.info(
+                        "VillagerMixin cancelled updateTrades and appended locked offers villagerUuid={} offersSize={}",
+                        this.getUUID(),
+                        offers.size()
+                );
+                ci.cancel();
+            }
+        } catch (RuntimeException e) {
+            DebugLogger.error(
+                    "VillagerMixin#updateTrades injection failed villagerUuid={}",
+                    e,
+                    this.getUUID()
+            );
+            throw e;
         }
     }
 
@@ -117,21 +132,37 @@ public abstract class VillagerMixin extends AbstractVillager implements Reputati
 
     @Override
     public MerchantOffers visibleTraders$getCombinedOffers() {
-        MerchantOffers combined = new MerchantOffers();
-        MerchantOffers offers = fvtv$getOffersOrNull();
-        if (offers != null) {
-            combined.addAll(offers);
-        }
-        if (!fvtv$isEnabled()) return combined;
-        if (!this.level().isClientSide) {
-            if (this.fvtv$lockedTradeData == null) {
-                visibleTrades$regenerateTrades();
+        try {
+            MerchantOffers combined = new MerchantOffers();
+            MerchantOffers offers = fvtv$getOffersOrNull();
+            if (offers != null) {
+                combined.addAll(offers);
             }
-            if (this.fvtv$lockedTradeData != null) {
-                combined.addAll(this.fvtv$lockedTradeData.buildLockedOffers());
+            if (!fvtv$isEnabled()) return combined;
+            if (!this.level().isClientSide) {
+                if (this.fvtv$lockedTradeData == null) {
+                    visibleTrades$regenerateTrades();
+                }
+                if (this.fvtv$lockedTradeData != null) {
+                    combined.addAll(this.fvtv$lockedTradeData.buildLockedOffers());
+                }
             }
+            return combined;
+        } catch (RuntimeException e) {
+            DebugLogger.error(
+                    "VillagerMixin#getCombinedOffers failed villagerUuid={} {}",
+                    e,
+                    this.getUUID(),
+                    DebugLogger.offersSummary(fvtv$getOffersOrNull())
+            );
+            this.fvtv$lockedTradeData = null;
+            MerchantOffers fallback = new MerchantOffers();
+            MerchantOffers baseOffers = fvtv$getOffersOrNull();
+            if (baseOffers != null) {
+                fallback.addAll(baseOffers);
+            }
+            return fallback;
         }
-        return combined;
     }
 
     @Override
