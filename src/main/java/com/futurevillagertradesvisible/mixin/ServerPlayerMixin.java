@@ -15,6 +15,7 @@ import net.minecraft.world.item.trading.MerchantOffers;
 import com.futurevillagertradesvisible.Config;
 import com.futurevillagertradesvisible.DebugLogger;
 import com.futurevillagertradesvisible.ducks.VillagerDuck;
+import com.futurevillagertradesvisible.network.NetworkHandler;
 
 @Mixin(ServerPlayer.class)
 public class ServerPlayerMixin {
@@ -38,16 +39,21 @@ public class ServerPlayerMixin {
             VillagerDuck duck = VillagerDuck.of(villager);
             MerchantOffers combined = duck.visibleTraders$getCombinedOffers();
             int shiftedLevel = duck.visibleTraders$getShiftedLevel();
+            int unlockedCount = offers == null ? 0 : offers.size();
+            int packetLevel = Config.useCompatibilitySafePacketLevel() ? level : shiftedLevel;
+            NetworkHandler.sendUnlockedCount(self, containerId, unlockedCount);
             DebugLogger.info(
-                    "ServerPlayerMixin sending combined offers containerId={} originalOffers={} combinedOffers={} rawLevel={} shiftedLevel={} villagerUuid={}",
+                    "ServerPlayerMixin sending combined offers containerId={} originalOffers={} combinedOffers={} unlockedCount={} rawLevel={} shiftedLevel={} packetLevel={} villagerUuid={}",
                     containerId,
                     offers.size(),
                     combined.size(),
+                    unlockedCount,
                     level,
                     shiftedLevel,
+                    packetLevel,
                     villager.getUUID()
             );
-            self.connection.send(new ClientboundMerchantOffersPacket(containerId, combined, shiftedLevel, xp, showProgress, canRestock));
+            self.connection.send(new ClientboundMerchantOffersPacket(containerId, combined, packetLevel, xp, showProgress, canRestock));
             ci.cancel();
         } catch (RuntimeException e) {
             DebugLogger.error(

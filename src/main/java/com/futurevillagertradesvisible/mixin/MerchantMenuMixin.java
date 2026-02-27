@@ -19,6 +19,7 @@ import com.futurevillagertradesvisible.Config;
 import com.futurevillagertradesvisible.DebugLogger;
 import com.futurevillagertradesvisible.ducks.ClientSideMerchantDuck;
 import com.futurevillagertradesvisible.ducks.MerchantMenuDuck;
+import com.futurevillagertradesvisible.network.TradeSyncState;
 
 @Mixin(MerchantMenu.class)
 public abstract class MerchantMenuMixin implements MerchantMenuDuck {
@@ -34,15 +35,31 @@ public abstract class MerchantMenuMixin implements MerchantMenuDuck {
     public abstract MerchantOffers getOffers();
 
     @Unique
-    private int fvtv$unlockedTradeCount = 0;
+    private int fvtv$unlockedTradeCount = -1;
 
     @Inject(method = "setMerchantLevel", at = @At("TAIL"))
     private void fvtv$readUnlockedTradeCountFromLevel(int level, CallbackInfo ci) {
         try {
             if (!Config.isEnabled()) {
-                this.fvtv$unlockedTradeCount = 0;
+                this.fvtv$unlockedTradeCount = -1;
                 this.merchantLevel = level;
                 fvtv$setClientUnlockedTrades(0);
+                return;
+            }
+            if (Config.useCompatibilitySafePacketLevel()) {
+                // Compat mode: unlocked count arrives through custom packet sync.
+                int containerId = ((MerchantMenu) (Object) this).containerId;
+                int syncedUnlockedCount = TradeSyncState.getUnlockedCount(containerId);
+                this.fvtv$unlockedTradeCount = syncedUnlockedCount;
+                this.merchantLevel = level;
+                fvtv$setClientUnlockedTrades(this.fvtv$unlockedTradeCount);
+                DebugLogger.info(
+                        "MerchantMenuMixin#setMerchantLevel compat mode active level={} unlockedCount={} containerId={} {}",
+                        level,
+                        syncedUnlockedCount,
+                        containerId,
+                        DebugLogger.merchantSummary(this.trader)
+                );
                 return;
             }
             this.fvtv$unlockedTradeCount = level >> 8;
@@ -69,7 +86,14 @@ public abstract class MerchantMenuMixin implements MerchantMenuDuck {
     @Override
     public boolean visibleTraders$shouldAllowTrade(int index) {
         if (!Config.isEnabled()) return true;
-        return this.fvtv$unlockedTradeCount == 0 || index <= this.fvtv$unlockedTradeCount - 1;
+        if (this.fvtv$unlockedTradeCount < 0) return false;
+        return index <= this.fvtv$unlockedTradeCount - 1;
+    }
+
+    @Override
+    public void visibleTraders$setUnlockedTradeCount(int unlockedCount) {
+        this.fvtv$unlockedTradeCount = unlockedCount;
+        fvtv$setClientUnlockedTrades(unlockedCount);
     }
 
     @Unique
@@ -106,5 +130,11 @@ public abstract class MerchantMenuMixin implements MerchantMenuDuck {
             );
             throw e;
         }
+    }
+
+    @Inject(method = "setOffers", at = @At("TAIL"))
+    private void fvtv$onSetOffers(MerchantOffers offers, CallbackInfo ci) {
+        if (!Config.isEnabled()) return;
+        fvtv$setClientUnlockedTrades(this.fvtv$unlockedTradeCount);
     }
 }
