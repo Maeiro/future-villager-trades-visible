@@ -23,6 +23,7 @@ import net.minecraft.world.level.Level;
 import com.futurevillagertradesvisible.Config;
 import com.futurevillagertradesvisible.DebugLogger;
 import com.futurevillagertradesvisible.LockedTradeData;
+import com.futurevillagertradesvisible.TradeEligibility;
 import com.futurevillagertradesvisible.ducks.VillagerDuck;
 
 @Mixin(Villager.class)
@@ -179,6 +180,17 @@ public abstract class VillagerMixin extends AbstractVillager implements Reputati
 
     @Unique
     private boolean fvtv$isEnabled() {
-        return Config.isEnabled();
+        if (!Config.isEnabled()) return false;
+        try {
+            return TradeEligibility.shouldApplyFutureTrades((Villager) (Object) this);
+        } catch (RuntimeException e) {
+            DebugLogger.error(
+                    "VillagerMixin#isEnabled failed villagerUuid={}",
+                    e,
+                    this.getUUID()
+            );
+            if (!Config.shouldFailOpenOnTradeSyncError()) throw e;
+            return false;
+        }
     }
 }

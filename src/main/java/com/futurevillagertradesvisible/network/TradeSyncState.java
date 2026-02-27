@@ -16,4 +16,8 @@ public final class TradeSyncState {
     public static int getUnlockedCount(int containerId) {
         return UNLOCKED_BY_CONTAINER.getOrDefault(containerId, -1);
     }
+
+    public static void clearUnlockedCount(int containerId) {
+        UNLOCKED_BY_CONTAINER.remove(containerId);
+    }
 }

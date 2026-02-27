@@ -79,14 +79,16 @@ public abstract class MerchantMenuMixin implements MerchantMenuDuck {
                     level,
                     DebugLogger.merchantSummary(this.trader)
             );
-            throw e;
+            this.fvtv$unlockedTradeCount = -1;
+            this.merchantLevel = level;
+            if (!Config.shouldFailOpenOnTradeSyncError()) throw e;
         }
     }
 
     @Override
     public boolean visibleTraders$shouldAllowTrade(int index) {
         if (!Config.isEnabled()) return true;
-        if (this.fvtv$unlockedTradeCount < 0) return false;
+        if (this.fvtv$unlockedTradeCount < 0) return true;
         return index <= this.fvtv$unlockedTradeCount - 1;
     }
 
@@ -128,13 +130,22 @@ public abstract class MerchantMenuMixin implements MerchantMenuDuck {
                     unlockedCount,
                     DebugLogger.merchantSummary(this.trader)
             );
-            throw e;
+            if (!Config.shouldFailOpenOnTradeSyncError()) throw e;
         }
     }
 
     @Inject(method = "setOffers", at = @At("TAIL"))
     private void fvtv$onSetOffers(MerchantOffers offers, CallbackInfo ci) {
         if (!Config.isEnabled()) return;
+        if (Config.useCompatibilitySafePacketLevel()) {
+            int containerId = ((MerchantMenu) (Object) this).containerId;
+            int syncedUnlockedCount = TradeSyncState.getUnlockedCount(containerId);
+            if (syncedUnlockedCount >= 0) {
+                this.fvtv$unlockedTradeCount = syncedUnlockedCount;
+            } else if (Config.shouldFailOpenOnTradeSyncError() && offers != null) {
+                this.fvtv$unlockedTradeCount = offers.size();
+            }
+        }
         fvtv$setClientUnlockedTrades(this.fvtv$unlockedTradeCount);
     }
 }
