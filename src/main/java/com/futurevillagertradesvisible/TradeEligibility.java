@@ -1,13 +1,18 @@
 package com.futurevillagertradesvisible;
 
-import net.minecraft.core.registries.BuiltInRegistries;
+import java.util.Objects;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.trading.Merchant;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public final class TradeEligibility {
-    private static final ResourceLocation FALLBACK_NONE = new ResourceLocation("minecraft", "none");
+    private static final ResourceLocation FALLBACK_NONE = Objects.requireNonNull(
+            ResourceLocation.tryParse("minecraft:none"),
+            "Invalid fallback villager profession id"
+    );
 
     private TradeEligibility() {
     }
@@ -25,7 +30,7 @@ public final class TradeEligibility {
 
     public static ResourceLocation getProfessionId(VillagerProfession profession) {
         if (profession == null) return FALLBACK_NONE;
-        ResourceLocation id = BuiltInRegistries.VILLAGER_PROFESSION.getKey(profession);
+        ResourceLocation id = ForgeRegistries.VILLAGER_PROFESSIONS.getKey(profession);
         return id == null ? FALLBACK_NONE : id;
     }
 }

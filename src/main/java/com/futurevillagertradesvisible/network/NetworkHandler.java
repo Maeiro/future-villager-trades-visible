@@ -1,5 +1,7 @@
 package com.futurevillagertradesvisible.network;
 
+import java.util.Objects;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkDirection;
@@ -12,9 +14,13 @@ import com.futurevillagertradesvisible.FutureVillagerTradesVisible;
 public final class NetworkHandler {
     private static final String PROTOCOL_VERSION = "1";
     private static int packetId = 0;
+    private static final ResourceLocation CHANNEL_ID = Objects.requireNonNull(
+            ResourceLocation.tryParse(FutureVillagerTradesVisible.MODID + ":network"),
+            "Invalid FVTV network channel id"
+    );
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation(FutureVillagerTradesVisible.MODID, "network"),
+            CHANNEL_ID,
             () -> PROTOCOL_VERSION,
             PROTOCOL_VERSION::equals,
             PROTOCOL_VERSION::equals
