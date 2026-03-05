@@ -9,24 +9,6 @@ import net.minecraftforge.common.ForgeConfigSpec;
 
 public class Config {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-    private static final List<String> DEFAULT_BYPASSED_PROFESSIONS = List.of(
-            "minecraft:armorer",
-            "minecraft:butcher",
-            "minecraft:cartographer",
-            "minecraft:cleric",
-            "minecraft:farmer",
-            "minecraft:fisherman",
-            "minecraft:fletcher",
-            "minecraft:leatherworker",
-            "minecraft:librarian",
-            "minecraft:mason",
-            "minecraft:shepherd",
-            "minecraft:toolsmith",
-            "minecraft:weaponsmith",
-            "minecraft:nitwit",
-            "minecraft:none"
-    );
-
     private static List<String> cachedRawBypassedProfessions = List.of();
     private static Set<ResourceLocation> cachedBypassedProfessions = Set.of();
 
@@ -42,7 +24,7 @@ public class Config {
             .comment("Villager professions where FVTV should not modify trade synchronization")
             .defineListAllowEmpty(
                     "bypassedVillagerProfessions",
-                    () -> DEFAULT_BYPASSED_PROFESSIONS,
+                    List::of,
                     o -> o instanceof String s && ResourceLocation.tryParse(s) != null
             );
 

@@ -15,10 +15,11 @@ import com.futurevillagertradesvisible.network.NetworkHandler;
 public class FutureVillagerTradesVisible {
     public static final String MODID = "futurevillagertradesvisible";
     public static final Logger LOGGER = LogUtils.getLogger();
+    private static final String COMMON_CONFIG_FILE = MODID + "-common-v2.toml";
 
     @SuppressWarnings("removal")
     public FutureVillagerTradesVisible() {
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC, COMMON_CONFIG_FILE);
         NetworkHandler.register();
     }
 }
