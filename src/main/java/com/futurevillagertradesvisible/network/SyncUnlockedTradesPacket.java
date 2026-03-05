@@ -1,11 +1,9 @@
 package com.futurevillagertradesvisible.network;
 
-import java.util.function.Supplier;
-
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.fml.DistExecutor;
 
 public record SyncUnlockedTradesPacket(int containerId, int unlockedCount) {
 
@@ -18,11 +16,10 @@ public record SyncUnlockedTradesPacket(int containerId, int unlockedCount) {
         return new SyncUnlockedTradesPacket(buffer.readVarInt(), buffer.readVarInt());
     }
 
-    public static void handle(SyncUnlockedTradesPacket message, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+    public static void handle(SyncUnlockedTradesPacket message, CustomPayloadEvent.Context context) {
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
                 ClientTradeSyncHandler.handleUnlockedTradeCount(message.containerId(), message.unlockedCount())
-        ));
-        context.setPacketHandled(true);
+        );
     }
 }
+
